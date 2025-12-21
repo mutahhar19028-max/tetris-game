@@ -89,6 +89,7 @@ jobs:
           mkdir Tetris-Win64
           xcopy assets Tetris-Win64\assets /E /I
           move build\Tetris.exe Tetris-Win64\
+          copy build\*.dll Tetris-Win64\        # <-- copy all DLLs
           powershell Compress-Archive Tetris-Win64 Tetris-Win64.zip
 
       - uses: actions/upload-artifact@v4
