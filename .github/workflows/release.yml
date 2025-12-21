@@ -1,0 +1,232 @@
+name: Build and Publish Tetris Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+# ============================================================
+# WINDOWS 64-BIT
+# ============================================================
+  windows-64:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSYS2 (MINGW64)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >
+            git
+            base-devel
+            mingw-w64-x86_64-toolchain
+
+      - name: Cache Raylib (Win64)
+        uses: actions/cache@v4
+        with:
+          path: raylib
+          key: raylib-win64
+
+      - name: Build Raylib (Win64)
+        shell: msys2 {0}
+        run: |
+          if [ ! -d raylib ]; then
+            git clone --depth 1 https://github.com/raysan5/raylib.git
+            cd raylib/src
+            make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=STATIC
+          fi
+
+      - name: Build Tetris (Win64)
+        shell: msys2 {0}
+        run: |
+          mkdir -p build
+          g++ -std=c++17 -O2 \
+            -Iinclude -Iinclude/raylib -Iinclude/ffmpeg \
+            src/core/main.cpp \
+            src/core/game.cpp \
+            src/core/global.cpp \
+            src/util/icon.cpp \
+            src/util/game-utils.cpp \
+            src/ui/cursor-effect.cpp \
+            src/ui/custom-colors.cpp \
+            src/ui/window-manager.cpp \
+            src/theme/theme-manager.cpp \
+            src/stats/stats-manager.cpp \
+            src/menu/menu.cpp \
+            src/menu/game-menu.cpp \
+            src/grid/grid.cpp \
+            src/font/font-manager.cpp \
+            src/booster/booster.cpp \
+            src/booster/booster-manager.cpp \
+            src/blocks/block.cpp \
+            src/blocks/blocks.cpp \
+            src/blocks/position.cpp \
+            src/audio/audio-manager.cpp \
+            src/animation/animation-manager.cpp \
+            src/animation/ball-animation.cpp \
+            src/animation/dots-animation.cpp \
+            src/animation/lines-animation.cpp \
+            src/animation/particle-animation.cpp \
+            src/animation/square-animation.cpp \
+            src/intro-video/video-player.cpp \
+            src/intro-video/intro-video.cpp \
+            src/background-image/background-image.cpp \
+            -Lraylib/src -lraylib \
+            -Llib -lavformat -lavcodec -lavutil -lswresample -lswscale \
+            -lopengl32 -lgdi32 -lwinmm -lshell32 -luser32 \
+            -o build/Tetris.exe
+
+      - name: Package (Win64)
+        run: |
+          mkdir Tetris-Win64
+          xcopy assets Tetris-Win64\assets /E /I
+          copy readme.txt Tetris-Win64\
+          move build\Tetris.exe Tetris-Win64\
+          powershell Compress-Archive Tetris-Win64 Tetris-Win64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tetris-Win64
+          path: Tetris-Win64.zip
+
+# ============================================================
+# WINDOWS 32-BIT
+# ============================================================
+  windows-32:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSYS2 (MINGW32)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          update: true
+          install: >
+            git
+            base-devel
+            mingw-w64-i686-toolchain
+
+      - name: Cache Raylib (Win32)
+        uses: actions/cache@v4
+        with:
+          path: raylib
+          key: raylib-win32
+
+      - name: Build Raylib (Win32)
+        shell: msys2 {0}
+        run: |
+          if [ ! -d raylib ]; then
+            git clone --depth 1 https://github.com/raysan5/raylib.git
+            cd raylib/src
+            make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=STATIC
+          fi
+
+      - name: Build Tetris (Win32)
+        shell: msys2 {0}
+        run: |
+          mkdir -p build
+          g++ -std=c++17 -O2 \
+            -Iinclude -Iinclude/raylib -Iinclude/ffmpeg \
+            src/**/*.cpp \
+            -Lraylib/src -lraylib \
+            -Llib -lavformat -lavcodec -lavutil -lswresample -lswscale \
+            -lopengl32 -lgdi32 -lwinmm -lshell32 -luser32 \
+            -o build/Tetris.exe
+
+      - name: Package (Win32)
+        run: |
+          mkdir Tetris-Win32
+          xcopy assets Tetris-Win32\assets /E /I
+          copy readme.txt Tetris-Win32\
+          move build\Tetris.exe Tetris-Win32\
+          powershell Compress-Archive Tetris-Win32 Tetris-Win32.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tetris-Win32
+          path: Tetris-Win32.zip
+
+# ============================================================
+# LINUX 64-BIT
+# ============================================================
+  linux-64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git zip \
+            ffmpeg libavcodec-dev libavformat-dev libavutil-dev \
+            libswscale-dev libswresample-dev \
+            libx11-dev libxcursor-dev libxinerama-dev libxrandr-dev libxi-dev
+
+      - name: Cache Raylib (Linux)
+        uses: actions/cache@v4
+        with:
+          path: raylib
+          key: raylib-linux
+
+      - name: Build Raylib (Linux)
+        run: |
+          if [ ! -d raylib ]; then
+            git clone --depth 1 https://github.com/raysan5/raylib.git
+            cd raylib/src
+            make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=STATIC
+          fi
+
+      - name: Build Tetris (Linux)
+        run: |
+          mkdir -p build
+          g++ -std=c++17 -O2 \
+            -Iinclude -Iinclude/raylib \
+            src/**/*.cpp \
+            -Lraylib/src -lraylib \
+            -lavformat -lavcodec -lavutil -lswscale -lswresample \
+            -lGL -lm -ldl -lpthread -lrt -lX11 \
+            -o build/Tetris
+
+      - name: Package (Linux)
+        run: |
+          mkdir Tetris-Linux-x86_64
+          cp -r assets Tetris-Linux-x86_64/
+          cp readme.txt Tetris-Linux-x86_64/
+          mv build/Tetris Tetris-Linux-x86_64/
+          zip -r Tetris-Linux-x86_64.zip Tetris-Linux-x86_64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tetris-Linux
+          path: Tetris-Linux-x86_64.zip
+
+# ============================================================
+# RELEASE
+# ============================================================
+  publish:
+    needs: [windows-64, windows-32, linux-64]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*.zip
+          generate_release_notes: true
