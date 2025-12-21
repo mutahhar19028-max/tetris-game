@@ -97,92 +97,6 @@ jobs:
           path: Tetris-Win64.zip
 
 # ============================================================
-# WINDOWS 32-BIT
-# ============================================================
-  windows-32:
-    runs-on: windows-2022
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup MSYS2 (MINGW32)
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW32
-          update: true
-          install: >
-            git
-            base-devel
-            mingw-w64-i686-toolchain
-
-      - name: Cache Raylib (Win32)
-        uses: actions/cache@v4
-        with:
-          path: raylib
-          key: raylib-win32
-
-      - name: Build Raylib (Win32)
-        shell: msys2 {0}
-        run: |
-          if [ ! -d raylib ]; then
-            git clone --depth 1 https://github.com/raysan5/raylib.git
-            cd raylib/src
-            make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=STATIC
-          fi
-
-      - name: Build Tetris (Win32)
-        shell: msys2 {0}
-        run: |
-          mkdir -p build
-          g++ -std=c++17 -O2 \
-            -Iinclude -Iinclude/raylib -Iinclude/ffmpeg \
-            src/core/main.cpp \
-            src/core/game.cpp \
-            src/core/global.cpp \
-            src/util/icon.cpp \
-            src/util/game-utils.cpp \
-            src/ui/cursor-effect.cpp \
-            src/ui/custom-colors.cpp \
-            src/ui/window-manager.cpp \
-            src/theme/theme-manager.cpp \
-            src/stats/stats-manager.cpp \
-            src/menu/menu.cpp \
-            src/menu/game-menu.cpp \
-            src/grid/grid.cpp \
-            src/font/font-manager.cpp \
-            src/booster/booster.cpp \
-            src/booster/booster-manager.cpp \
-            src/blocks/block.cpp \
-            src/blocks/blocks.cpp \
-            src/blocks/position.cpp \
-            src/audio/audio-manager.cpp \
-            src/animation/animation-manager.cpp \
-            src/animation/ball-animation.cpp \
-            src/animation/dots-animation.cpp \
-            src/animation/lines-animation.cpp \
-            src/animation/particle-animation.cpp \
-            src/animation/square-animation.cpp \
-            src/intro-video/video-player.cpp \
-            src/intro-video/intro-video.cpp \
-            src/background-image/background-image.cpp \
-            -Lraylib/src -lraylib \
-            -Llib -lavformat -lavcodec -lavutil -lswresample -lswscale \
-            -lopengl32 -lgdi32 -lwinmm -lshell32 -luser32 \
-            -o build/Tetris.exe
-
-      - name: Package (Win32)
-        run: |
-          mkdir Tetris-Win32
-          xcopy assets Tetris-Win32\assets /E /I
-          move build\Tetris.exe Tetris-Win32\
-          powershell Compress-Archive Tetris-Win32 Tetris-Win32.zip
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Tetris-Win32
-          path: Tetris-Win32.zip
-
-# ============================================================
 # LINUX 64-BIT
 # ============================================================
   linux-64:
@@ -198,7 +112,8 @@ jobs:
             build-essential git zip \
             ffmpeg libavcodec-dev libavformat-dev libavutil-dev \
             libswscale-dev libswresample-dev \
-            libx11-dev libxcursor-dev libxinerama-dev libxrandr-dev libxi-dev
+            libx11-dev libxcursor-dev libxinerama-dev libxrandr-dev libxi-dev \
+            libgl1-mesa-dev
 
       - name: Cache Raylib (Linux)
         uses: actions/cache@v4
@@ -268,7 +183,7 @@ jobs:
 # RELEASE
 # ============================================================
   publish:
-    needs: [windows-64, windows-32, linux-64]
+    needs: [windows-64, linux-64]
     runs-on: ubuntu-latest
 
     steps:
