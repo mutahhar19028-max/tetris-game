@@ -88,7 +88,6 @@ jobs:
         run: |
           mkdir Tetris-Win64
           xcopy assets Tetris-Win64\assets /E /I
-          copy readme.txt Tetris-Win64\
           move build\Tetris.exe Tetris-Win64\
           powershell Compress-Archive Tetris-Win64 Tetris-Win64.zip
 
@@ -147,7 +146,6 @@ jobs:
         run: |
           mkdir Tetris-Win32
           xcopy assets Tetris-Win32\assets /E /I
-          copy readme.txt Tetris-Win32\
           move build\Tetris.exe Tetris-Win32\
           powershell Compress-Archive Tetris-Win32 Tetris-Win32.zip
 
@@ -203,7 +201,6 @@ jobs:
         run: |
           mkdir Tetris-Linux-x86_64
           cp -r assets Tetris-Linux-x86_64/
-          cp readme.txt Tetris-Linux-x86_64/
           mv build/Tetris Tetris-Linux-x86_64/
           zip -r Tetris-Linux-x86_64.zip Tetris-Linux-x86_64
 
